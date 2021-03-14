@@ -1,8 +1,8 @@
 from ast import parse
-import os
+import sys
 import nltk
 
-os.path.join('..')
+sys.path.append('..')
 
 from Task2.utils import approximate_string_match, get_pr_metrics, partition_data, read_ce_data
 import argparse
@@ -17,12 +17,15 @@ def get_companies(ce_data):
 
 def predict_companies(datum, company_list, args):
     predicted_companies = set()
-    tokens = nltk.word_tokenize(datum['text'])
+    tokens = nltk.word_tokenize(datum['raw_text'])
 
+    print(datum['tweet_id'],'-------------------------------')
     for token in tokens:
         for company in company_list:
-            if approximate_string_match(token.lower(),company.lower()) >= args.token_match_threshold:
-                predict_companies.add(company)
+            match_ratio = approximate_string_match(token.lower(),company.lower())
+            if match_ratio >= args.token_match_threshold:
+                print(token,company,match_ratio)
+                predicted_companies.add(company)
     
     return list(predicted_companies)
     
@@ -60,7 +63,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     ce_data = read_ce_data(args.labeled_csv_file_path)
-    ce_data_train, ce_data_dev = partition_data(ce_data,args.dec_ratio)
+    ce_data_train, ce_data_dev = partition_data(ce_data,args.dev_ratio)
 
     company_list = get_companies(ce_data_train)
     metrics = ce_fuzzymatch_eval(ce_data_dev,company_list,args)
