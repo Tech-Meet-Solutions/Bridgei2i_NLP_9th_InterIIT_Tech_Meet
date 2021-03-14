@@ -1,13 +1,18 @@
 '''Rule based approach for task 1
 
 This is a simple fuzzy string matching based implementation which checks if the word smartphone is present in the tweet.
-It gives almost 99% accuracy on the train set 
+It gives almost 99.9% accuracy on the train set 
 '''
 import pandas as pd 
 import numpy as np 
 
 from fuzzywuzzy import fuzz 
 from sklearn.metrics import classification_report
+
+
+def brute_force_fuzzy(s1,s2):
+	# Returns the max match according to fuzzy matching
+	return max(fuzz.ratio(s1,s2), fuzz.partial_ratio(s1,s2), fuzz.token_sort_ratio(s1,s2),fuzz.token_set_ratio(s1,s2))
 
 def predict(x):
 	'''Predictor function
@@ -20,11 +25,15 @@ def predict(x):
 	Returns:
 		float -- Probability of the tweet being relevant
 	'''
-	english_pred = fuzz.partial_ratio("smartphone",x.lower())
-	hindi_pred = fuzz.partial_ratio("स्मार्टफ़ोन",x)
-	return (max(hindi_pred,english_pred)>70)*1      # 70 here is a heuristic obtained on the train set!
+	english_pred = brute_force_fuzzy("smartphone",x.lower())
+	hindi_pred = brute_force_fuzzy("स्मार्टफ़ोन",x)
+	return (max(hindi_pred,english_pred)>95)*1      # 95 here is a heuristic obtained on the train set!
 
 
+def predict_exact(x):
+	english_pred = int(any(["smartphone" in c.lower() for c in x]))
+	hindi_pred = int(any(["स्मार्टफ़ोन" in c for c in x]))
+	return max(hindi_pred,english_pred)      
 
 if __name__ == '__main__':
 	# Driver code to test
