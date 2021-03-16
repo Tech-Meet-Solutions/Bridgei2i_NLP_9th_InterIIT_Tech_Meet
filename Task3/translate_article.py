@@ -10,17 +10,18 @@ import argparse
 from tqdm import tqdm
 
 import multiprocessing
+import pdb
 
 def translate(text):
 	try:
-		print(text)
+		# print(text)
 		t = ts.google(text,to_language='en')
 		t = t.replace("\n"," ")
-		print(t)
+		# print(t)
 		return t
 	except:
 		print("--------------------OOPS (stop and try again)---------------------")
-		return ""
+		raise Exception
 
 # def write(text, output_file_path):
 # 	f = open(output_file_path, "a")
@@ -60,12 +61,17 @@ if __name__ == '__main__':
 	sent = ""
 	paras = df['Text'][low:hgh+1]
 
-	pool = multiprocessing.Pool(8)
-	translated_paras = pool.map(translate_para,tqdm(paras))
+	pool = multiprocessing.Pool(4)
+	translated_paras = list(pool.map(translate_para,tqdm(paras)))
 	pool.close()
+	# print(translated_paras)
+
 
 	with open(args.output_file_path,'a') as output_file:
-		output_file.writelines(translated_paras)
+		for line in translated_paras:
+			output_file.write(line+'\n')
+	
+	print(f'completed till {hgh}')
 	
 
 
