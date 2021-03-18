@@ -125,12 +125,17 @@ def get_pr_metrics(predicted_set, gold_set):
     )
 
 def approximate_string_match(str1, str2):
+    if len(str2)>=4 and str2 in str1:
+        return 1
+    if str2 == 'iphone' and str2 not in str1:
+        return 0
     return max(
         fuzz.ratio(str1,str2),
         # fuzz.partial_ratio(str1, str2),
-        fuzz.token_sort_ratio(str1, str2),
-        fuzz.token_set_ratio(str1,str2),
+        # fuzz.token_sort_ratio(str1, str2),
+        # fuzz.token_set_ratio(str1,str2),
         # fuzz.partial_token_set_ratio(str1, str2),
-        # fuzz.partial_token_sort_ratio(str1, str2)
+        # fuzz.partial_token_sort_ratio(str1, str2),
+        0
     ) /100
 
