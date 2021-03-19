@@ -33,26 +33,38 @@ def preprocess_clean(s):
 
     return s
 
-def parse_ce_data_line(line):
+def parse_ce_data_line(line,args):
     try:
         line = line.strip()
         line = line.split('\t')
-        tweet_id, raw_text = line[:2]
+        doc_id, raw_text = line[:2]
 
-        if len(line)>3:
-            companies = line[2]
-            sentiments = line[3]
-            if ',' in companies:
-                companies = companies.strip().split(',')
+        raw_text = raw_text.replace('।','.')
+
+        basic_datum_size = 3 if args.data_type == 'tweets' else 5
+
+        if len(line)>basic_datum_size:
+            if args.data_type == 'tweets':
+                companies = line[2]
+                sentiments = line[3]
+                if ',' in companies:
+                    companies = companies.strip().split(',')
+                else:
+                    companies = [companies]
+                
+                if ',' in sentiments:
+                    sentiments = list(map(int,sentiments.strip().split(',')))
+                else:
+                    sentiments = [int(sentiments)]
+                
             else:
-                companies = [companies]
-            
+                companies = line[4::2]
+                sentiments = line[5::2]
+                sentiments = [int(x) for x in sentiments]
+
             companies = [x.strip().lower() for x in companies]
-            
-            if ',' in sentiments:
-                sentiments = list(map(int,sentiments.strip().split(',')))
-            else:
-                sentiments = [int(sentiments)]
+
+
         else:
             companies = []
             sentiments = []
@@ -61,7 +73,7 @@ def parse_ce_data_line(line):
         #     raise NotImplementedError
 
         return {
-            'tweet_id' : tweet_id,
+            'doc_id' : doc_id,
             'raw_text' : raw_text,
             'text' : preprocess_clean(raw_text),
             'companies':[
@@ -72,15 +84,18 @@ def parse_ce_data_line(line):
         traceback.print_exc(file=sys.stdout)
         pdb.set_trace()
 
-def read_ce_data(ce_data_path):
+def read_ce_data(ce_data_path, args):
     try:
         ce_data = []
         with open(ce_data_path) as ce_data_file:
-            for line in ce_data_file:
+            ce_data_lines = ce_data_file.readlines()
+            if args.skip_first_line:
+                ce_data_lines=ce_data_lines[1:]
+            for line in ce_data_lines:
                 if line.strip() == '':
                     continue
-                datum = parse_ce_data_line(line)
-                if not len(ce_data) == 0 and datum['tweet_id'] == ce_data[-1]['tweet_id']:
+                datum = parse_ce_data_line(line,args)
+                if not len(ce_data) == 0 and datum['doc_id'] == ce_data[-1]['doc_id']:
                     ce_data[-1]['companies'].extend(
                         datum['companies']
                     )
@@ -95,15 +110,13 @@ def partition_data(data,dev_ratio):
     data = deepcopy(data)
     dev_size = int(len(data)*dev_ratio)
     random.shuffle(data)
-    return data[:-dev_size], data[-dev_size:]
+    return data[:len(data)-dev_size], data[len(data)-dev_size:]
 
 def get_pr_metrics(predicted_set, gold_set):
-    print('predicted',predicted_set)
-    print('gold',gold_set)
-    print()
+    
     precision_numerator = sum(
         [
-            1 if x in gold_set else 0 for x in predicted_set
+            1 for x in predicted_set if x in gold_set
         ]
     )
 
@@ -111,11 +124,16 @@ def get_pr_metrics(predicted_set, gold_set):
 
     recall_numerator = sum(
         [
-            1 if x in predicted_set else 0 for x in gold_set
+            1 for x in gold_set if x in predicted_set
         ]
     )
 
     recall_denominator = len(gold_set)
+
+    if recall_numerator!=recall_denominator:
+        print('predicted',predicted_set)
+        print('gold',gold_set)
+        print()
 
     return (
         precision_numerator,
@@ -138,4 +156,9 @@ def approximate_string_match(str1, str2):
         # fuzz.partial_token_sort_ratio(str1, str2),
         0
     ) /100
+
+def get_context_sentences(sentences,i,context_window):
+    return sentences[
+        max(0,i-context_window):i+context_window+1
+    ]
 
