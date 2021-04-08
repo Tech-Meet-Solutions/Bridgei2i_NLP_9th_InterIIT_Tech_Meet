@@ -6,84 +6,48 @@ Created on Mon Mar 15 17:56:11 2021
 """
 import pandas as pd
 import translators as ts
-import argparse
-from tqdm import tqdm
-
-import multiprocessing
-import pdb
+import sys
+import unicodedata
+def strip_control_chars(data: str) -> str:
+    return ''.join(c for c in data if not unicodedata.category(c).startswith('C'))
 
 def translate(text):
 	try:
-		# print(text)
+		print(text)
 		t = ts.google(text,to_language='en')
 		t = t.replace("\n"," ")
-		# print(t)
+		print(t)
 		return t
 	except:
 		print("--------------------OOPS (stop and try again)---------------------")
-		raise Exception
+		return ""
 
-# def write(text, output_file_path):
-# 	f = open(output_file_path, "a")
-# 	f.write(text + ' ')
-# 	f.close()
-# 	return
-
-def translate_para(para):
-	translated_para = ""
-	sent = ""
-	for i in para:
-		if i in ["\n", "।"]:
-			i = "."
-		if i in [".", "?", "!"]:
-			if sent != "":
-				translated_sentence = translate(sent + i)
-				translated_para += translated_sentence + ' '
-			sent = ""
-			continue
-		sent += i
-	return translated_para
+def write(text):
+	text = strip_control_chars(text)
+	f = open("test.source", "a")
+	f.write(text + ' ')
+	f.close()
+	return
 		  
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description='')
-
-	parser.add_argument('--low',required=True,type=int)
-	parser.add_argument('--high',required=True,type=int)
-	parser.add_argument('--article_file_path',required=True)
-	parser.add_argument('--output_file_path',required=True)
-
-	args = parser.parse_args()
-
-	low = args.low
-	hgh = args.high
-	df = pd.read_csv(args.article_file_path)
+	low = int(sys.argv[1])
+	hgh = int(sys.argv[2])
+	df = pd.read_csv('evaluation_data.csv')
 	
 	sent = ""
-	paras = df['Text'][low:hgh+1]
-
-	pool = multiprocessing.Pool(4)
-	translated_paras = list(pool.map(translate_para,tqdm(paras)))
-	pool.close()
-	# print(translated_paras)
-
-
-	with open(args.output_file_path,'a') as output_file:
-		for line in translated_paras:
-			output_file.write(line+'\n')
-	
-	print(f'completed till {hgh}')
-	
-
-
-	# for j in tqdm(range(low, hgh)):
-	# 	for i in df['Text'][j]:
-	# 		if i in ["\n", "।"]:
-	# 			i = "."
-	# 		if i in [".", "?", "!"]:
-	# 			if sent != "":
-	# 				write(translate(sent + i),args.output_file_path)
-	# 			sent = ""
-	# 			continue
-	# 		sent += i
-		# write('\n')
-		# print("#############################",j, "Completed", "#####################")
+	for j in range(low, hgh):
+		for i in df['Text'][j]:
+			if i in ["\n", "।"]:
+				i = "."
+			if i in [".", "?", "!"]:
+				if sent != "":
+					write(translate(sent + i))
+				sent = ""
+				continue
+			sent += i
+		write(translate(sent))
+		sent = ""
+		f = open("test.source", "a")
+		f.write("\n")
+		f.close()
+		print("#############################",j, "Completed", "#####################")

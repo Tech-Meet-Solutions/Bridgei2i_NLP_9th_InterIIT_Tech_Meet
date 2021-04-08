@@ -7,6 +7,7 @@ from yaml import compose_all
 sys.path.append('..')
 
 from Task2.utils import approximate_string_match, get_context_sentences, get_pr_metrics, partition_data, read_ce_data
+from Task2.company_map import company_map
 import argparse
 import json
 from google_trans_new import google_translator
@@ -14,25 +15,21 @@ from tqdm import tqdm
 
 translator = google_translator() 
 
-company_map = {
-    'realmex7pro' : 'realme',
-    'iphone' : 'apple',
-    'pocox3' : 'poco',
-    'poco m2' : 'poco',
-    'techno' : 'tecno',
-    'one plus' : 'oneplus',
-    'galaxy' : 'samsung',
-    'xiamoi' : 'xiaomi',
-    'moto' : 'motorola',
-    'pixel' : 'google'
+capital_map = {
+    'Bsnl' : 'BSNL',
+    'Hmd' : 'HMD',
+    'Zte' : 'ZTE',
+    'Oneplus' : 'OnePlus',
+    'Mediatek' : 'MediaTek',
+    'Blackberry' : 'BlackBerry'
 }
 
-# corrected_company = {
-#     'techno' : 'tecno',
-#     'realmex7pro' : 'realme',
-#     'iphone' : 'apple'
-# }
-
+def map_capital(company):
+    company = company[0].upper()+company[1:]
+    if company in capital_map:
+        return capital_map[company]
+    else:
+        return company
 
 def get_companies(ce_data,args):
     if not args.read_companies:
@@ -43,39 +40,35 @@ def get_companies(ce_data,args):
     else:
         with open(args.company_json_path) as company_json_file:
             companies = json.load(company_json_file)
+        
+    for company in companies[:61]:
+        capital_map[company] = company[0].upper()+company[1:]
     
-    hindi_companies = []
+    # hindi_companies = []
 
-    print('translating companies...')
-    for company in tqdm(companies):
-        hindi_company = translator.translate(company,lang_src='en',lang_tgt='hi').lower()
-        company_map[hindi_company] = company
-        hindi_companies.append(hindi_company)
+    # print('translating companies...')
+    # for company in tqdm(companies):
+    #     hindi_company = translator.translate(company,lang_src='en',lang_tgt='hi').lower().strip()
+    #     if hindi_company != company and company != 'xiamoi':
+    #         company_map[hindi_company] = company
+    #     hindi_companies.append(hindi_company.strip())
     
     
     if args.store_companies:
         with open(args.company_json_path,'w') as company_json_file:
             json.dump(companies,company_json_file,indent=2)
 
-    companies.extend(hindi_companies)
+    # companies.extend(hindi_companies)
     print(companies)
     
     return set(companies)
 
 def map_company(company):
     while company in company_map:
+        # print(company)
         company = company_map[company]
     return company
-    # for i in range(len(companies)):
-    #     if companies[i] in company_map:
-    #         companies[i] = company_map[companies[i]]
-    # return companies
 
-# def correct_company(company):
-#     if company in company_map:
-#         return company_map[company]
-#     else:
-#         return company
 
 def predict_companies(datum, company_list, args):
     predicted_companies = set()
@@ -95,17 +88,16 @@ def predict_companies(datum, company_list, args):
 
                 if match_ratio >= args.token_match_threshold:
                     # print(token,company,match_ratio)
-                    extracted_company = map_company(company)
+                    extracted_company = map_capital(map_company(company))
 
                     predicted_companies.add(extracted_company)
                     if extracted_company not in datum['company_extractions']:
                         datum['company_extractions'][extracted_company] = []
                     datum['company_extractions'][extracted_company].append([
                         token,
-                        get_context_sentences(sentences,i,args.sentence_context_window)
+                        get_context_sentences(sentences,i,args.sentence_context_window if 'article' in datum['doc_id'] else 0)
                     ])
                     break
-    
     
     return list(predicted_companies)
     
@@ -120,17 +112,25 @@ def ce_fuzzymatch_eval(ce_data_dev, company_list, args):
     for datum in ce_data_dev:
         predictd_companies_list = predict_companies(datum,company_list, args)
         datum_metrics = get_pr_metrics(predictd_companies_list,[
-            map_company(x[0]) for x in datum['companies']
+            map_capital(map_company(x[0])) for x in datum['companies']
         ])
         precision_numerator += datum_metrics[0]
         precision_denominator += datum_metrics[1]
         recall_numerator += datum_metrics[2]
         recall_denominator += datum_metrics[3]
     
-    return {
-        'precision' : precision_numerator/precision_denominator,
-        'recall' : recall_numerator/recall_denominator
-    }
+    if args.eval == 'on':
+    
+        return {
+            'precision' : precision_numerator/precision_denominator,
+            'recall' : recall_numerator/recall_denominator
+        }
+    
+    else:
+        return {
+            'precision' : 0,
+            'recall' : 0
+        }
 
 
 if __name__ == "__main__":
@@ -146,6 +146,7 @@ if __name__ == "__main__":
     parser.add_argument('--sentence_context_window',type=int)
     parser.add_argument('--data_json_out_path')
     parser.add_argument('--skip_first_line',action='store_true')
+    parser.add_argument('--eval', choices=['on','off'], default='on')
     
     args = parser.parse_args()
 

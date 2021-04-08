@@ -143,10 +143,16 @@ def get_pr_metrics(predicted_set, gold_set):
     )
 
 def approximate_string_match(str1, str2):
-    if len(str2)>=4 and str2 in str1:
+    if len(str2)>=4 and str2 in str1 and str2.isascii():
         return 1
     if str2 == 'iphone' and str2 not in str1:
         return 0
+    if not str2.isascii():
+        if fuzz.ratio(str1,str2) < 94:
+            return 0
+        else:
+            return 1
+
     return max(
         fuzz.ratio(str1,str2),
         # fuzz.partial_ratio(str1, str2),

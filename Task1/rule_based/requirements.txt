@@ -1,5 +1,0 @@
-fuzzywuzzy
-pandas
-numpy
-sklearn
-python-Levenshtein
