@@ -8,6 +8,10 @@
 - **Performance**: The code takes around 10seconds to run on a 4 core Intel(R) Core(TM) i5CPU @ 2.50GHz machine  
 
 ### Task 2: Brand Identification and Sentiment Generator
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/34444901/114154997-9d3d6280-993e-11eb-9d8a-7675b542c6b2.png" alt="task2"/>
+</p>
+
 - **Approach**: In this task we focused on leveraging the essentially finite set of companies. We already know from problem description that we expect to find only real-world mobile tech and mobile accessory companies in the tweets and the articles. So it makes sense to construct a similar robust set of companies for which our model will look for, in the documents. Upon brand identification we categorize a tweet/article into one of two categories:&nbsp;
 
       i.	Having a single brand present in the tweet/article
@@ -46,6 +50,10 @@ Trained on kaggle using GPU: the code is in the file ``Task2/subtask-2_sentiment
 - Inference time: 90 sec for the complete dataset  
 
 ### Task 3: Headline Generation/ Summarisation 
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/34444901/114154939-90207380-993e-11eb-88ff-e75e0da2ab4a.png" alt="task3"/>
+</p>
+
 - **Approach**: We begin with a thorough examination of the dataset. The dataset has a lot of variability in the sensethat we could find all 4 kinds of translated/transliterated articles between the English and Hindi Languagei.e. Hindi and English written in both devanagari as well as roman scripts. Quite naturally, this implies that the problem would be more tractable if we get it all in one setting (roman). This would also vastly increase the scalability and robustness of the solution as then we can use this for articles in any languagerather than hinging on just english-hindi ones. Moreover, this would open the doors to the plethora ofexcellent pretrained models available for the english language. 
     We clean the dataset and translate it using a widely available free python API ``translator``.  This uses translation interfaces of Google, Yandex, Microsoft(Bing), Baidu, Alibaba etc to output decent englishtranslations of the input article.
     Then we finetuned the dataset on **distilBART**, a distilled (lighter) version of BART, denoising autoencoders for pretraining sequence-to-sequence models. For fine tuning on the given dataset, we use all the articles at the initial stages and not just the domain ones. We divide the articles into train and validation splits. For every tenth article we add it to the val dataset. Hence, the training set has 3600 pairs while the validation one has 400. We finetune it for 5000 steps. 
@@ -55,3 +63,20 @@ Run ``Train_and_eval.ipynb``  notebook. Note that paths need to be changed. Plea
 The trained model is available at https://drive.google.com/drive/folders/13IurxI9KMti9QFtEw57XsPxZVEwBhUo3?usp=sharing
 For training as well as evaluation, you will need to run different parts of the code in the notebook.
 - **Performance**: Preprocessing takes around 30-40 seconds per article. Inference using the model takes 1 second per article. Total Training Time:Around 2.5 hours for 5000 steps on Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz
+
+----- 
+## Team Members
+
+- Pragyanshu Singh
+- Pranav
+- Yash Gupta
+- Yash Jain
+- Aishwarya Agarwal  
+- Aman Kansal
+- Anshul Nasery
+- Deepti Mittal
+- Siddhesh P Pawar
+- Shubham Mishra
+
+The contingent won Bronze Medal 🥉 in the Bridgei2i Automated Headline and Sentiment Generator challenge.
+
